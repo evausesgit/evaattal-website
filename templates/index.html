@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Mes Favoris</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>📚 Mes Favoris</h1>
+            <div class="header-actions">
+                <input type="text" id="searchInput" placeholder="🔍 Rechercher..." class="search-box">
+            </div>
+        </header>
+
+        <!-- Menu de catégories -->
+        <nav class="category-menu">
+            <button class="category-btn active" data-category="all">Tout</button>
+            <div id="categoryButtons"></div>
+        </nav>
+
+        <!-- Liste des bookmarks -->
+        <div id="bookmarksList" class="bookmarks-list"></div>
+
+        <!-- Message vide -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <p>Aucun favori pour le moment.</p>
+            <p>Cliquez sur le bouton + pour en ajouter un !</p>
+        </div>
+
+        <!-- Bouton flottant + -->
+        <button id="addBtn" class="fab">+</button>
+    </div>
+
+    <!-- Modal d'ajout -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter un favori</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="addForm">
+                <div class="form-group">
+                    <label for="titre">Titre *</label>
+                    <input type="text" id="titre" name="titre" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="categorie">Catégorie *</label>
+                    <input type="text" id="categorie" name="categorie" required
+                           list="categoriesList" placeholder="Ex: Travail, Loisirs, Recettes...">
+                    <datalist id="categoriesList"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label for="labels">Labels (séparés par des virgules)</label>
+                    <input type="text" id="labels" name="labels"
+                           placeholder="Ex: important, à lire, urgent">
+                </div>
+
+                <div class="form-group">
+                    <label for="lien">Lien Internet</label>
+                    <input type="url" id="lien" name="lien" placeholder="https://...">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" id="cancelBtn">Annuler</button>
+                    <button type="submit" class="btn-submit">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
