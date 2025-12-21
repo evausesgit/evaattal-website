@@ -37,14 +37,15 @@
         <button id="addBtn" class="fab">+</button>
     </div>
 
-    <!-- Modal d'ajout -->
+    <!-- Modal d'ajout/édition -->
     <div id="addModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Ajouter un favori</h2>
+                <h2 id="modalTitle">Ajouter un favori</h2>
                 <span class="close">&times;</span>
             </div>
             <form id="addForm">
+                <input type="hidden" id="bookmarkId" name="bookmarkId">
                 <div class="form-group">
                     <label for="titre">Titre *</label>
                     <input type="text" id="titre" name="titre" required>
@@ -75,7 +76,7 @@
 
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" id="cancelBtn">Annuler</button>
-                    <button type="submit" class="btn-submit">Ajouter</button>
+                    <button type="submit" class="btn-submit" id="submitBtn">Ajouter</button>
                 </div>
             </form>
         </div>

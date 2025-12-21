@@ -1,6 +1,7 @@
 // État de l'application
 let allBookmarks = [];
 let currentCategory = 'all';
+let editingBookmarkId = null;
 
 // Éléments du DOM
 const addBtn = document.getElementById('addBtn');
@@ -12,6 +13,8 @@ const bookmarksList = document.getElementById('bookmarksList');
 const searchInput = document.getElementById('searchInput');
 const categoryButtons = document.getElementById('categoryButtons');
 const emptyState = document.getElementById('emptyState');
+const modalTitle = document.getElementById('modalTitle');
+const submitBtn = document.getElementById('submitBtn');
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -42,6 +45,9 @@ function setupEventListeners() {
 
 // Ouvrir/Fermer le modal
 function openModal() {
+    editingBookmarkId = null;
+    modalTitle.textContent = 'Ajouter un favori';
+    submitBtn.textContent = 'Ajouter';
     addModal.classList.add('active');
     document.getElementById('titre').focus();
 }
@@ -49,6 +55,7 @@ function openModal() {
 function closeModal() {
     addModal.classList.remove('active');
     addForm.reset();
+    editingBookmarkId = null;
 }
 
 // Charger tous les bookmarks
@@ -106,6 +113,11 @@ function displayBookmarks(bookmarks) {
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteBookmark(btn.dataset.id));
     });
+
+    // Ajouter les event listeners pour les boutons d'édition
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => editBookmark(btn.dataset.id));
+    });
 }
 
 // Créer une carte de bookmark
@@ -134,7 +146,10 @@ function createBookmarkCard(bookmark) {
         <div class="bookmark-card">
             <div class="bookmark-header">
                 <h3 class="bookmark-title">${bookmark.titre}</h3>
-                <button class="delete-btn" data-id="${bookmark.id}" title="Supprimer">×</button>
+                <div class="bookmark-actions">
+                    <button class="edit-btn" data-id="${bookmark.id}" title="Modifier">✏️</button>
+                    <button class="delete-btn" data-id="${bookmark.id}" title="Supprimer">×</button>
+                </div>
             </div>
             ${descriptionHTML}
             <span class="bookmark-category">${bookmark.categorie}</span>
@@ -145,7 +160,7 @@ function createBookmarkCard(bookmark) {
     `;
 }
 
-// Ajouter un nouveau bookmark
+// Ajouter ou modifier un bookmark
 async function handleSubmit(e) {
     e.preventDefault();
 
@@ -164,25 +179,42 @@ async function handleSubmit(e) {
     };
 
     try {
-        const response = await fetch('/api/bookmarks', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(bookmark)
-        });
+        let response;
+        let successMessage;
+
+        if (editingBookmarkId) {
+            // Mode édition
+            response = await fetch(`/api/bookmarks/${editingBookmarkId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookmark)
+            });
+            successMessage = 'Favori modifié avec succès !';
+        } else {
+            // Mode ajout
+            response = await fetch('/api/bookmarks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookmark)
+            });
+            successMessage = 'Favori ajouté avec succès !';
+        }
 
         if (response.ok) {
             closeModal();
             await loadBookmarks();
             await loadCategories();
-            showSuccess('Favori ajouté avec succès !');
+            showSuccess(successMessage);
         } else {
-            showError('Erreur lors de l\'ajout du favori');
+            showError('Erreur lors de l\'opération');
         }
     } catch (error) {
         console.error('Erreur:', error);
-        showError('Erreur lors de l\'ajout du favori');
+        showError('Erreur lors de l\'opération');
     }
 }
 
@@ -208,6 +240,28 @@ async function deleteBookmark(id) {
         console.error('Erreur:', error);
         showError('Erreur lors de la suppression');
     }
+}
+
+// Éditer un bookmark
+function editBookmark(id) {
+    const bookmark = allBookmarks.find(b => b.id === parseInt(id));
+    if (!bookmark) return;
+
+    // Passer en mode édition
+    editingBookmarkId = id;
+    modalTitle.textContent = 'Modifier le favori';
+    submitBtn.textContent = 'Modifier';
+
+    // Pré-remplir le formulaire
+    document.getElementById('titre').value = bookmark.titre;
+    document.getElementById('description').value = bookmark.description || '';
+    document.getElementById('categorie').value = bookmark.categorie;
+    document.getElementById('labels').value = bookmark.labels.join(', ');
+    document.getElementById('lien').value = bookmark.lien || '';
+
+    // Ouvrir le modal
+    addModal.classList.add('active');
+    document.getElementById('titre').focus();
 }
 
 // Filtrer par catégorie

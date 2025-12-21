@@ -66,6 +66,25 @@ def create_bookmark():
 
     return jsonify(bookmark.to_dict()), 201
 
+@app.route('/api/bookmarks/<int:bookmark_id>', methods=['PUT'])
+def update_bookmark(bookmark_id):
+    """Modifier un bookmark"""
+    bookmark = Bookmark.query.get_or_404(bookmark_id)
+    data = request.json
+
+    # Convertir les labels en chaîne
+    labels_str = ','.join(data.get('labels', [])) if isinstance(data.get('labels'), list) else data.get('labels', '')
+
+    bookmark.titre = data.get('titre', bookmark.titre)
+    bookmark.description = data.get('description', bookmark.description)
+    bookmark.labels = labels_str
+    bookmark.categorie = data.get('categorie', bookmark.categorie)
+    bookmark.lien = data.get('lien', bookmark.lien)
+
+    db.session.commit()
+
+    return jsonify(bookmark.to_dict()), 200
+
 @app.route('/api/bookmarks/<int:bookmark_id>', methods=['DELETE'])
 def delete_bookmark(bookmark_id):
     """Supprimer un bookmark"""

@@ -139,16 +139,30 @@ header h1 {
     flex: 1;
 }
 
+.bookmark-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-btn,
 .delete-btn {
     background: none;
     border: none;
-    color: var(--danger-color);
     cursor: pointer;
     font-size: 1.2rem;
     padding: 5px;
     transition: transform 0.2s;
 }
 
+.edit-btn {
+    color: var(--primary-color);
+}
+
+.delete-btn {
+    color: var(--danger-color);
+}
+
+.edit-btn:hover,
 .delete-btn:hover {
     transform: scale(1.2);
 }
