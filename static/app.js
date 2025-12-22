@@ -2,6 +2,7 @@
 let allBookmarks = [];
 let currentCategory = 'all';
 let editingBookmarkId = null;
+let categoryCounts = {};
 
 // Éléments du DOM
 const addBtn = document.getElementById('addBtn');
@@ -11,15 +12,19 @@ const cancelBtn = document.getElementById('cancelBtn');
 const closeBtn = document.querySelector('.close');
 const bookmarksList = document.getElementById('bookmarksList');
 const searchInput = document.getElementById('searchInput');
-const categoryButtons = document.getElementById('categoryButtons');
-const emptyState = document.getElementById('emptyState');
+const categoryList = document.getElementById('categoryList');
 const modalTitle = document.getElementById('modalTitle');
 const submitBtn = document.getElementById('submitBtn');
+const searchZone = document.getElementById('searchZone');
+const resultsZone = document.getElementById('resultsZone');
+const resultsTitle = document.getElementById('resultsTitle');
+const clearResults = document.getElementById('clearResults');
+const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+const sidebar = document.querySelector('.sidebar');
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
     loadBookmarks();
-    loadCategories();
     setupEventListeners();
     registerServiceWorker();
 });
@@ -31,22 +36,34 @@ function setupEventListeners() {
     cancelBtn.addEventListener('click', closeModal);
     addForm.addEventListener('submit', handleSubmit);
     searchInput.addEventListener('input', handleSearch);
+    clearResults.addEventListener('click', clearSearchResults);
+    mobileMenuToggle.addEventListener('click', toggleMobileSidebar);
 
     // Fermer le modal en cliquant à l'extérieur
     addModal.addEventListener('click', (e) => {
         if (e.target === addModal) closeModal();
     });
 
-    // Bouton "Tout"
-    document.querySelector('[data-category="all"]').addEventListener('click', () => {
-        filterByCategory('all');
+    // Fermer la sidebar mobile en cliquant à l'extérieur
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 &&
+            !sidebar.contains(e.target) &&
+            !mobileMenuToggle.contains(e.target) &&
+            sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
     });
+}
+
+// Toggle mobile sidebar
+function toggleMobileSidebar() {
+    sidebar.classList.toggle('open');
 }
 
 // Ouvrir/Fermer le modal
 function openModal() {
     editingBookmarkId = null;
-    modalTitle.textContent = 'Ajouter un favori';
+    modalTitle.textContent = 'Ajouter une note';
     submitBtn.textContent = 'Ajouter';
     addModal.classList.add('active');
     document.getElementById('titre').focus();
@@ -63,10 +80,11 @@ async function loadBookmarks() {
     try {
         const response = await fetch('/api/bookmarks');
         allBookmarks = await response.json();
-        displayBookmarks(allBookmarks);
+        await loadCategories();
+        updateCategoryCounts();
     } catch (error) {
         console.error('Erreur lors du chargement des bookmarks:', error);
-        showError('Impossible de charger les favoris');
+        showError('Impossible de charger les notes');
     }
 }
 
@@ -77,7 +95,18 @@ async function loadCategories() {
         const categories = await response.json();
 
         const categoriesList = document.getElementById('categoriesList');
-        categoryButtons.innerHTML = '';
+        categoriesList.innerHTML = '';
+
+        // Compter les notes par catégorie
+        categoryCounts = { all: allBookmarks.length };
+        allBookmarks.forEach(bookmark => {
+            categoryCounts[bookmark.categorie] = (categoryCounts[bookmark.categorie] || 0) + 1;
+        });
+
+        // Créer les éléments de catégorie dans la sidebar
+        const firstItem = categoryList.querySelector('li');
+        // Mettre à jour le compteur "Toutes les notes"
+        document.getElementById('count-all').textContent = categoryCounts.all;
 
         categories.forEach(category => {
             // Ajouter au datalist
@@ -85,36 +114,55 @@ async function loadCategories() {
             option.value = category;
             categoriesList.appendChild(option);
 
-            // Ajouter au menu
+            // Ajouter à la sidebar
+            const li = document.createElement('li');
             const btn = document.createElement('button');
-            btn.className = 'category-btn';
-            btn.textContent = category;
+            btn.className = 'category-item';
             btn.dataset.category = category;
+            btn.innerHTML = `
+                <span class="category-name">${category}</span>
+                <span class="category-count">${categoryCounts[category] || 0}</span>
+            `;
             btn.addEventListener('click', () => filterByCategory(category));
-            categoryButtons.appendChild(btn);
+            li.appendChild(btn);
+            categoryList.appendChild(li);
         });
     } catch (error) {
         console.error('Erreur lors du chargement des catégories:', error);
     }
 }
 
-// Afficher les bookmarks
-function displayBookmarks(bookmarks) {
-    if (bookmarks.length === 0) {
-        bookmarksList.innerHTML = '';
-        emptyState.style.display = 'block';
-        return;
-    }
+// Mettre à jour les compteurs de catégories
+function updateCategoryCounts() {
+    categoryCounts = { all: allBookmarks.length };
+    allBookmarks.forEach(bookmark => {
+        categoryCounts[bookmark.categorie] = (categoryCounts[bookmark.categorie] || 0) + 1;
+    });
 
-    emptyState.style.display = 'none';
+    // Mettre à jour l'affichage des compteurs
+    document.querySelectorAll('.category-item').forEach(btn => {
+        const category = btn.dataset.category;
+        const countSpan = btn.querySelector('.category-count');
+        if (countSpan) {
+            countSpan.textContent = categoryCounts[category] || 0;
+        }
+    });
+}
+
+// Afficher les bookmarks
+function displayBookmarks(bookmarks, title = '') {
     bookmarksList.innerHTML = bookmarks.map(bookmark => createBookmarkCard(bookmark)).join('');
 
-    // Ajouter les event listeners pour les boutons de suppression
+    // Afficher la zone de résultats
+    searchZone.style.display = 'none';
+    resultsZone.style.display = 'block';
+    resultsTitle.textContent = title || `${bookmarks.length} note${bookmarks.length > 1 ? 's' : ''}`;
+
+    // Ajouter les event listeners pour les boutons
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteBookmark(btn.dataset.id));
     });
 
-    // Ajouter les event listeners pour les boutons d'édition
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', () => editBookmark(btn.dataset.id));
     });
@@ -191,7 +239,7 @@ async function handleSubmit(e) {
                 },
                 body: JSON.stringify(bookmark)
             });
-            successMessage = 'Favori modifié avec succès !';
+            successMessage = 'Note modifiée avec succès !';
         } else {
             // Mode ajout
             response = await fetch('/api/bookmarks', {
@@ -201,14 +249,18 @@ async function handleSubmit(e) {
                 },
                 body: JSON.stringify(bookmark)
             });
-            successMessage = 'Favori ajouté avec succès !';
+            successMessage = 'Note ajoutée avec succès !';
         }
 
         if (response.ok) {
             closeModal();
             await loadBookmarks();
-            await loadCategories();
             showSuccess(successMessage);
+
+            // Rafraîchir l'affichage si on est dans une vue filtrée
+            if (resultsZone.style.display === 'block') {
+                filterByCategory(currentCategory);
+            }
         } else {
             showError('Erreur lors de l\'opération');
         }
@@ -220,7 +272,7 @@ async function handleSubmit(e) {
 
 // Supprimer un bookmark
 async function deleteBookmark(id) {
-    if (!confirm('Voulez-vous vraiment supprimer ce favori ?')) {
+    if (!confirm('Voulez-vous vraiment supprimer cette note ?')) {
         return;
     }
 
@@ -231,8 +283,12 @@ async function deleteBookmark(id) {
 
         if (response.ok) {
             await loadBookmarks();
-            await loadCategories();
-            showSuccess('Favori supprimé');
+            showSuccess('Note supprimée');
+
+            // Rafraîchir l'affichage si on est dans une vue filtrée
+            if (resultsZone.style.display === 'block') {
+                filterByCategory(currentCategory);
+            }
         } else {
             showError('Erreur lors de la suppression');
         }
@@ -249,7 +305,7 @@ function editBookmark(id) {
 
     // Passer en mode édition
     editingBookmarkId = id;
-    modalTitle.textContent = 'Modifier le favori';
+    modalTitle.textContent = 'Modifier la note';
     submitBtn.textContent = 'Modifier';
 
     // Pré-remplir le formulaire
@@ -269,7 +325,7 @@ function filterByCategory(category) {
     currentCategory = category;
 
     // Mettre à jour les boutons actifs
-    document.querySelectorAll('.category-btn').forEach(btn => {
+    document.querySelectorAll('.category-item').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.category === category) {
             btn.classList.add('active');
@@ -277,11 +333,22 @@ function filterByCategory(category) {
     });
 
     // Filtrer les bookmarks
+    let filtered;
+    let title;
+
     if (category === 'all') {
-        displayBookmarks(allBookmarks);
+        filtered = allBookmarks;
+        title = 'Toutes les notes';
     } else {
-        const filtered = allBookmarks.filter(b => b.categorie === category);
-        displayBookmarks(filtered);
+        filtered = allBookmarks.filter(b => b.categorie === category);
+        title = category;
+    }
+
+    displayBookmarks(filtered, title);
+
+    // Fermer le menu mobile si ouvert
+    if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
     }
 }
 
@@ -294,7 +361,7 @@ async function handleSearch(e) {
     clearTimeout(searchTimeout);
 
     if (query === '') {
-        displayBookmarks(allBookmarks);
+        clearSearchResults();
         return;
     }
 
@@ -302,11 +369,36 @@ async function handleSearch(e) {
         try {
             const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
             const results = await response.json();
-            displayBookmarks(results);
+
+            if (results.length > 0) {
+                displayBookmarks(results, `Résultats pour "${query}"`);
+            } else {
+                // Afficher un message si aucun résultat
+                searchZone.style.display = 'none';
+                resultsZone.style.display = 'block';
+                resultsTitle.textContent = `Aucun résultat pour "${query}"`;
+                bookmarksList.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">Aucune note trouvée.</p>';
+            }
         } catch (error) {
             console.error('Erreur de recherche:', error);
         }
     }, 300);
+}
+
+// Effacer les résultats
+function clearSearchResults() {
+    searchInput.value = '';
+    searchZone.style.display = 'flex';
+    resultsZone.style.display = 'none';
+    currentCategory = 'all';
+
+    // Réinitialiser les catégories actives
+    document.querySelectorAll('.category-item').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.category === 'all') {
+            btn.classList.add('active');
+        }
+    });
 }
 
 // Messages de feedback
@@ -319,12 +411,11 @@ function showError(message) {
 }
 
 function showToast(message, type) {
-    // Créer un toast simple
     const toast = document.createElement('div');
     toast.style.cssText = `
         position: fixed;
-        bottom: 100px;
-        right: 20px;
+        bottom: 30px;
+        right: 30px;
         background: ${type === 'success' ? '#4CAF50' : '#f44336'};
         color: white;
         padding: 16px 24px;
