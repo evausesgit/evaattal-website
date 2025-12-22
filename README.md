@@ -1,10 +1,10 @@
-# Application de Gestion de Favoris
+# Application de Gestion de Notes
 
-Une application web Progressive Web App (PWA) pour gérer vos favoris et liens avec des catégories et des labels.
+Une application web Progressive Web App (PWA) pour gérer vos notes et liens avec des catégories et des labels.
 
 ## Fonctionnalités
 
-- Ajouter des favoris avec titre, description, catégorie, labels et lien
+- Ajouter des notes avec titre, description, catégorie, labels et lien
 - Filtrer par catégorie
 - Recherche par mots-clés dans tous les champs
 - Interface responsive (mobile et desktop)

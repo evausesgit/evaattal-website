@@ -123,9 +123,9 @@ def search_bookmarks():
 def manifest():
     """Manifest PWA"""
     return jsonify({
-        "name": "Mes Favoris",
-        "short_name": "Favoris",
-        "description": "Application de gestion de favoris et liens",
+        "name": "Mes notes",
+        "short_name": "Notes",
+        "description": "Application de gestion de notes et liens",
         "start_url": "/",
         "display": "standalone",
         "background_color": "#ffffff",
