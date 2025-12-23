@@ -2,10 +2,14 @@ from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
+from pathlib import Path
+
+# Get the directory containing this file (api/)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = Flask(__name__,
-            template_folder='../templates',
-            static_folder='../static')
+            template_folder=str(BASE_DIR / 'templates'),
+            static_folder=str(BASE_DIR / 'static'))
 
 # Use environment variable for database or default to SQLite
 # Vercel Postgres uses POSTGRES_URL, but also check DATABASE_URL for compatibility
@@ -45,8 +49,12 @@ class Bookmark(db.Model):
         }
 
 # Créer les tables
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+except Exception as e:
+    print(f"Warning: Could not create database tables: {e}")
+    # Continue anyway - the error will be caught when routes are accessed
 
 # Routes
 
