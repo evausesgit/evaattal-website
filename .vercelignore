@@ -1,0 +1,11 @@
+venv
+__pycache__
+*.pyc
+.git
+.gitignore
+instance
+*.db
+README.md
+start.sh
+add_restaurants.py
+app.py
