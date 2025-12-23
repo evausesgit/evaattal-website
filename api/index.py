@@ -48,15 +48,32 @@ class Bookmark(db.Model):
             'date_creation': self.date_creation.isoformat()
         }
 
+# Variable pour tracker l'état de la base de données
+db_initialized = False
+db_error = None
+
 # Créer les tables
 try:
     with app.app_context():
         db.create_all()
+        db_initialized = True
+        print("Database tables created successfully")
 except Exception as e:
+    db_error = str(e)
     print(f"Warning: Could not create database tables: {e}")
     # Continue anyway - the error will be caught when routes are accessed
 
 # Routes
+
+@app.route('/health')
+def health():
+    """Route de diagnostic"""
+    return jsonify({
+        'status': 'ok' if db_initialized else 'error',
+        'database_initialized': db_initialized,
+        'database_url': os.environ.get('POSTGRES_URL', 'Not set'),
+        'error': db_error
+    })
 
 @app.route('/')
 def index():
