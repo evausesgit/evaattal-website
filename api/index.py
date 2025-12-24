@@ -199,5 +199,105 @@ def manifest():
         ]
     })
 
+@app.route('/api/import-restaurants', methods=['POST'])
+def import_restaurants():
+    """Importer la liste de restaurants dans la base de données"""
+    restaurants = """TIKOUN OLAM
+SPITISOU
+RODSHENKO
+ALMA
+SCOSSA
+BOZEN
+ANGIE
+MAISON SAUVAGE
+JOYA Trattoria
+Brach
+Huguette
+Adraba
+Maison Sauvage
+Digue
+Train Deauville
+Mirabeau
+Amourette
+BEEF Bar
+AERO
+Bozen
+Black Dog
+Bozen
+Daroco
+Maison Sauvage
+Ischia
+BAMBOU
+ANDIA
+As fallafel
+Allenby
+la table de Martine
+Fille du boucher
+Gallopin
+L'ile
+Crying tiger
+Bozen
+Jardins de presbourg
+Hermes
+Crying tiger
+Corail resto
+Le recepteur
+Restaurant molitor
+Brasserie auteuil
+Resto barzurto
+Marcello
+SOMA restaurant
+Brass st germain
+Petit Poucet
+Romeo
+Grande cascade
+square
+waknine"""
+
+    # Nettoyer et dédupliquer la liste
+    restaurant_list = [r.strip() for r in restaurants.split('\n') if r.strip()]
+    restaurant_list = list(dict.fromkeys(restaurant_list))  # Supprimer les doublons en gardant l'ordre
+
+    added = 0
+    skipped = 0
+    results = []
+
+    try:
+        for resto in restaurant_list:
+            # Vérifier si le restaurant existe déjà
+            existing = Bookmark.query.filter_by(titre=resto, categorie='restaurant paris').first()
+
+            if existing:
+                results.append(f"⏭️  '{resto}' existe déjà, ignoré")
+                skipped += 1
+            else:
+                bookmark = Bookmark(
+                    titre=resto,
+                    description='',
+                    labels='restaurant',
+                    categorie='restaurant paris',
+                    lien=''
+                )
+                db.session.add(bookmark)
+                added += 1
+                results.append(f"✅ '{resto}' ajouté")
+
+        db.session.commit()
+
+        return jsonify({
+            'status': 'success',
+            'added': added,
+            'skipped': skipped,
+            'total': len(restaurant_list),
+            'results': results
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
 # This is required for Vercel
 app = app
