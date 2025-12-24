@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
+import re
 from pathlib import Path
 
 # Get the directory containing this file (api/)
@@ -18,6 +19,12 @@ database_url = os.environ.get('POSTGRES_URL') or os.environ.get('DATABASE_URL', 
 # Vercel Postgres URLs start with 'postgres://' but SQLAlchemy 1.4+ requires 'postgresql://'
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+# Fix malformed Supabase pooler parameter if present
+# Remove invalid parameter like '&supa=base-pooler.x' which should be '&pgbouncer=true' or removed
+database_url = re.sub(r'&supa=base-pooler\.x', '', database_url)
+database_url = re.sub(r'\?supa=base-pooler\.x&', '?', database_url)
+database_url = re.sub(r'\?supa=base-pooler\.x$', '', database_url)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -68,10 +75,18 @@ except Exception as e:
 @app.route('/health')
 def health():
     """Route de diagnostic"""
+    # Don't expose full database URL (contains credentials)
+    db_url = os.environ.get('POSTGRES_URL', 'Not set')
+    if db_url != 'Not set' and '@' in db_url:
+        # Mask credentials: postgres://user:password@host/db -> postgres://***:***@host/db
+        db_url_masked = re.sub(r'://[^:]+:[^@]+@', '://***:***@', db_url)
+    else:
+        db_url_masked = db_url
+
     return jsonify({
         'status': 'ok' if db_initialized else 'error',
         'database_initialized': db_initialized,
-        'database_url': os.environ.get('POSTGRES_URL', 'Not set'),
+        'database_url': db_url_masked,
         'error': db_error
     })
 
